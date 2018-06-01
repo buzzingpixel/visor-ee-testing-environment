@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  web:
+    image: buzzingpixel/nginx:latest
+    container_name: nginx-visor-ee
+    ports:
+      - "${dockerNginxPort}:80"
+    volumes:
+      - .:/app
+      - ${dockerNginxConfFile}:/etc/nginx/conf.d/site.conf
+      - ../visor-ee:/visor-ee
+  php:
+    image: buzzingpixel/php5.4:latest
+    container_name: php-visor-ee
+    volumes:
+      - .:/app
+      - ./serverConfig/php/php-custom-config.ini:/usr/local/etc/php/conf.d/php-custom-config.ini
+      - ${dockerPhpEnvIni}:/usr/local/etc/php/conf.d/php-env-config.ini
+      - ../visor-ee:/visor-ee
+  db:
+    image: buzzingpixel/mariadb:latest
+    container_name: db-visor-ee
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${mySqlRootPassword}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    user: "1000:50"
+    volumes:
+      - .:/app
+      - ${dockerDbDataDir}:/var/lib/mysql
+      - ../visor-ee:/visor-ee
+    ports:
+      - "${dockerDbPort}:3306"

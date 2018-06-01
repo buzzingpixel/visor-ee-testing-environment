@@ -1,0 +1,182 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Set project variables
+ */
+
+$projPath = realpath(__DIR__);
+$vendorPath = $projPath . '/vendor/*';
+
+$relativeSysPath = 'system';
+$relativeThemesPath = 'public/themes';
+$stashStaticCacheRelativePath = 'public/cache';
+
+
+/**
+ * Make sure all necessary directories exist
+ */
+
+if ($stashStaticCacheRelativePath) {
+    if (! is_dir("{$projPath}{$stashStaticCacheRelativePath}")) {
+        exec("mkdir -p {$projPath}/{$stashStaticCacheRelativePath}");
+    }
+
+    exec("sudo chmod -R 0777 {$projPath}/{$stashStaticCacheRelativePath}");
+}
+
+if (! is_dir("{$projPath}/{$relativeSysPath}/user/addons")) {
+    exec("mkdir -p {$projPath}/{$relativeSysPath}/user/addons");
+}
+
+exec("mkdir -p {$projPath}/{$relativeSysPath}/user/cache");
+exec("sudo chmod -R 0777 {$projPath}/{$relativeSysPath}/user/cache");
+file_put_contents(
+    "{$projPath}/{$relativeSysPath}/user/cache/.gitignore",
+    "*\n!.gitignore\n"
+);
+
+if (! is_dir("{$projPath}/{$relativeSysPath}/user/config")) {
+    exec("mkdir -p {$projPath}/{$relativeSysPath}/user/config");
+}
+
+if (! file_exists("{$projPath}/{$relativeSysPath}/user/config/config.php")) {
+    exec("touch {$projPath}/{$relativeSysPath}/user/config/config.php");
+}
+
+if (! is_dir("{$projPath}/{$relativeSysPath}/user/templates")) {
+    exec("mkdir -p {$projPath}/{$relativeSysPath}/user/templates");
+}
+exec("sudo chmod -R 0777 {$projPath}/{$relativeSysPath}/user/templates");
+
+if (! is_dir("{$projPath}/{$relativeThemesPath}/user")) {
+    exec("mkdir -p {$projPath}/{$relativeThemesPath}/user");
+}
+
+
+/**
+ * Symlink EE Composer files into place
+ */
+
+// EE System directory
+if (is_link("{$projPath}/{$relativeSysPath}/ee") ||
+    file_exists("{$projPath}/{$relativeSysPath}/ee") ||
+    is_dir("{$projPath}/{$relativeSysPath}/ee")
+) {
+    exec("sudo rm -rf {$projPath}/{$relativeSysPath}/ee");
+}
+symlink(
+    "{$projPath}/vendor/tjdraper/expressionengine/src/system/ee",
+    "{$projPath}/{$relativeSysPath}/ee"
+);
+file_put_contents(
+    "{$projPath}/{$relativeSysPath}/.gitignore",
+    "ee\n"
+);
+
+// EE Themes directory
+if (is_link("{$projPath}/{$relativeThemesPath}/ee") ||
+    file_exists("{$projPath}/{$relativeThemesPath}/ee") ||
+    is_dir("{$projPath}/{$relativeThemesPath}/ee")
+) {
+    exec("sudo rm -rf {$projPath}/{$relativeThemesPath}/ee");
+}
+symlink(
+    "{$projPath}/vendor/tjdraper/expressionengine/src/themes/ee",
+    "{$projPath}/{$relativeThemesPath}/ee"
+);
+file_put_contents(
+    "{$projPath}/{$relativeThemesPath}/.gitignore",
+    "ee\n"
+);
+
+// Set permissions on installer directory
+if (is_dir("{$projPath}/vendor/tjdraper/expressionengine/src/system/ee/installer")) {
+    exec("sudo chmod 0777 {$projPath}/vendor/tjdraper/expressionengine/src/system/ee");
+    exec("sudo chmod -R 0777 {$projPath}/vendor/tjdraper/expressionengine/src/system/ee/installer");
+}
+
+
+/**
+ * Symlink any composer dependency managed add-ons
+ */
+
+// Remove existing symlinks first
+foreach (glob("{$projPath}/{$relativeSysPath}/user/addons/*") as $link) {
+    if (! is_link($link)) {
+        continue;
+    }
+    exec("sudo rm -rf {$link}");
+}
+
+$addonSystemGitIgnore = [];
+$addonThemeGitIgnore = [];
+
+foreach (glob($vendorPath) as $dir) {
+    if (! is_dir($dir)) {
+        continue;
+    }
+
+    $globPattern = "{$dir}/*";
+
+    foreach (glob($globPattern) as $vendorDir) {
+        if (! is_dir($vendorDir)) {
+            continue;
+        }
+
+        $composerJsonPath = "{$vendorDir}/composer.json";
+
+        if (! is_file($composerJsonPath)) {
+            continue;
+        }
+
+        $composerArr = json_decode(file_get_contents($composerJsonPath), true);
+
+        if (! isset(
+                $composerArr['type'],
+                $composerArr['extra']['handle']
+            ) ||
+            $composerArr['type'] !== 'ee-add-on'
+        ) {
+            continue;
+        }
+
+        if (isset($composerArr['extra']['systemPath'])) {
+            $pathFrom = "{$vendorDir}/{$composerArr['extra']['systemPath']}";
+            $path = "/{$relativeSysPath}/user/addons/{$composerArr['extra']['handle']}";
+            $pathTo = "{$projPath}{$path}";
+
+            if (is_link($pathTo) || file_exists($pathTo) || is_dir($pathTo)) {
+                exec("sudo rm -rf {$pathTo}");
+            }
+
+            symlink($pathFrom, $pathTo);
+
+            $addonSystemGitIgnore[] = $composerArr['extra']['handle'];
+        }
+
+        if (isset($composerArr['extra']['themePath'])) {
+            $pathFrom = "{$vendorDir}/{$composerArr['extra']['themePath']}";
+            $path = "/{$relativeThemesPath}/user/{$composerArr['extra']['handle']}";
+            $pathTo = "{$projPath}{$path}";
+
+            if (is_link($pathTo) || file_exists($pathTo) || is_dir($pathTo)) {
+                exec("sudo rm -rf {$pathTo}");
+            }
+
+            symlink($pathFrom, $pathTo);
+
+            $addonThemeGitIgnore[] = $composerArr['extra']['handle'];
+        }
+    }
+}
+
+file_put_contents(
+    "{$projPath}/{$relativeSysPath}/user/addons/.gitignore",
+    implode("\n", $addonSystemGitIgnore) . "\n"
+);
+
+file_put_contents(
+    "{$projPath}/{$relativeThemesPath}/user/.gitignore",
+    implode("\n", $addonThemeGitIgnore) . "\n"
+);

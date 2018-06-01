@@ -1,0 +1,26 @@
+{
+    "name": "buzzingpixel/visor-ee-testing-environment",
+    "description": "Visor EE Testing Environment",
+    "license": "proprietary",
+    "homepage": "https://buzzingpixel.com",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:tjdraper/expressionengine.git"
+        },
+        {
+            "type": "path",
+            "url": "../visor-ee"
+        }
+    ],
+    "require": {
+        "tjdraper/expressionengine": "^4.2.1",
+        "vlucas/phpdotenv": "^2.4",
+        "buzzingpixel/visor-ee": "^0.0.1"
+    },
+    "require-dev": {
+        "tjdraper/expressionengine": "^4.2.1",
+        "roave/security-advisories": "dev-master"
+    }
+}
