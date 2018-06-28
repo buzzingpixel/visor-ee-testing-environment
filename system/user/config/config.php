@@ -86,7 +86,7 @@ $config['site_404'] = 'core/_404';
 $config['is_system_on'] = 'y';
 $config['multiple_sites_enabled'] = 'n';
 
-$config['app_version'] = '4.3.0';
+$config['app_version'] = '4.3.1';
 $config['encryption_key'] = '435b211cbf7307aa4aba2eb9a19d698848d7b34d';
 $config['session_crypt_key'] = '36ea7988ad527586245093279a4959cfb20d55e7';
 $config['database'] = array(
